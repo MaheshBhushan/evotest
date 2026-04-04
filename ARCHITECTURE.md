@@ -1,219 +1,201 @@
 # Autotestgen Architecture
 
-This document describes the architecture that is actually implemented in this repository today.
+This document describes the architecture that is implemented in this repository today.
 
-It is a Python-first closed-loop test generation harness with these current properties:
+`autotestgen` is a closed-loop test generation harness with three main execution modes:
 
-- Python targets only
-- `pytest` + `pytest-cov`
-- One function or module target per run
-- SQLite persistence
-- Retry loop with failure classification
-- Deterministic template-based test generation
+- single-target discovery and execution
+- repository workflows against a local path or Git repo
+- benchmark runs over a JSON spec
 
-It is not yet a full multi-agent system, and it is not yet using an LLM-backed generator or repair step.
+The current codebase supports Python, JavaScript, and Go through a shared adapter interface. Test generation can use an OpenAI-backed provider or fall back to language-specific heuristic generation.
 
 ## System Overview
 
 ```text
 CLI
+  |-- discover ------------------------------> ClosedLoopOrchestrator
+  |                                             |-- adapter discovery
+  |                                             `-- SQLiteStore
   |
-  v
-ClosedLoopOrchestrator
-  |-- PythonProjectAnalyzer
-  |-- PromptBuilder
-  |-- StaticTestGenerator
-  |-- PytestRunner
-  |-- FailureClassifier
-  `-- SQLiteStore
+  |-- run --target --------------------------> ClosedLoopOrchestrator
+  |                                             |-- PromptBuilder
+  |                                             |-- ModelBackedTestGenerator
+  |                                             |-- language adapter
+  |                                             `-- SQLiteStore
+  |
+  |-- run <repo/path/url> -------------------> RepositoryWorkflowRunner
+  |                                             |-- RepositoryIntake
+  |                                             |-- ProjectDetector
+  |                                             |-- EnvironmentBootstrapper
+  |                                             |-- ClosedLoopOrchestrator
+  |                                             `-- RepoRepairEngine
+  |
+  `-- benchmark -----------------------------> BenchmarkRunner
+                                                `-- ClosedLoopOrchestrator per target
 ```
 
-The orchestrator is the control plane. It owns the end-to-end loop for a single target:
+The architecture is not multi-agent. It is a single-process orchestration model with adapter-based language specialization and optional model-backed generation.
 
-1. Discover the codebase and persist targets.
-2. Resolve the requested target.
-3. Build a prompt context from source, imports, nearby symbols, existing tests, prior failures, and uncovered lines.
-4. Generate a test artifact.
-5. Execute the generated test with coverage enabled.
-6. Classify the outcome.
-7. Persist prompt, test source, execution result, and failure metadata.
-8. Retry until success, plateau, or iteration limit.
+## Core Runtime Model
 
-## Runtime Flow
+The runtime revolves around a few shared contracts in [src/autotestgen/models.py](F:/Codex-Hackathon/src/autotestgen/models.py):
 
-### 1. CLI entrypoint
+- `FunctionTarget` and `ModuleTarget`: discovered testable units
+- `ProjectInventory`: language-scoped or merged target inventory
+- `PromptContext`: normalized generation context
+- `GeneratedTestArtifact`: generated test file metadata and source
+- `ExecutionResult`: runner output plus coverage
+- `FailureClassification`: normalized failure taxonomy
+- `AttemptRecord`: one persisted generation/execution attempt
+- `OrchestrationResult`: final outcome for one target
 
-File: [src/autotestgen/cli.py](F:/Codex-Hackathon/src/autotestgen/cli.py)
+These models let the orchestrator stay generic while each adapter owns language-specific behavior.
 
-The CLI exposes two commands:
+## Configuration
 
-- `discover`: scan the project and list module/function targets
-- `run`: execute the closed-loop harness for one target
-
-The CLI builds a `HarnessConfig` and hands off to `ClosedLoopOrchestrator`.
-
-### 2. Configuration
-
-File: [src/autotestgen/config.py](F:/Codex-Hackathon/src/autotestgen/config.py)
+Configuration lives in [src/autotestgen/config.py](F:/Codex-Hackathon/src/autotestgen/config.py).
 
 `HarnessConfig` controls:
 
-- `project_root`
-- `database_path`
-- `max_iterations`
-- `max_runtime_seconds`
-- `coverage_target`
-- `pytest_command`
-- generated test output directory
-- stability rerun count
+- project root and SQLite database path
+- artifacts root and generated test output directory
+- selected language or `auto`
+- retry, timeout, coverage, and stability thresholds
+- generator mode: `auto`, `llm`, or `heuristic`
+- OpenAI model settings and API key
+- Python executable and pytest command for execution/bootstrap
 
-### 3. Orchestrator
+Artifact roots default under `.autotestgen/`, while repository workflows default under `.autotestgen_repo_runs/`.
 
-File: [src/autotestgen/orchestrator/service.py](F:/Codex-Hackathon/src/autotestgen/orchestrator/service.py)
+## Adapter Layer
 
-`ClosedLoopOrchestrator` is the main runtime coordinator. It wires together:
+The adapter contract is defined in [src/autotestgen/adapters/base.py](F:/Codex-Hackathon/src/autotestgen/adapters/base.py).
 
-- `PythonProjectAnalyzer`
-- `PromptBuilder`
-- `StaticTestGenerator`
-- `PytestRunner`
-- `FailureClassifier`
-- `SQLiteStore`
+Each language adapter is responsible for:
 
-`run_target()` is the core loop. For each attempt it:
+- discovery
+- target resolution
+- prompt-context construction
+- heuristic generation
+- model-output validation
+- test repair
+- execution
+- failure classification
 
-1. Builds `PromptContext`
-2. Builds prompt text
-3. Generates a test file
-4. Validates syntax
-5. Runs pytest with coverage
-6. Computes coverage delta and uncovered lines
-7. Classifies failure
-8. Persists artifacts and metadata
-9. Applies simple retry/stop rules
+Current adapters:
 
-If a run succeeds and reaches the coverage threshold, the runner performs repeated reruns to check basic stability.
+- Python: [src/autotestgen/adapters/python/adapter.py](F:/Codex-Hackathon/src/autotestgen/adapters/python/adapter.py)
+- JavaScript: [src/autotestgen/adapters/javascript/adapter.py](F:/Codex-Hackathon/src/autotestgen/adapters/javascript/adapter.py)
+- Go: [src/autotestgen/adapters/go/adapter.py](F:/Codex-Hackathon/src/autotestgen/adapters/go/adapter.py)
 
-## Component Responsibilities
+Language detection and adapter selection live in [src/autotestgen/adapters/registry.py](F:/Codex-Hackathon/src/autotestgen/adapters/registry.py). In `auto` mode the system can merge inventories from multiple languages into one mixed inventory.
 
-### Analyzer
+## Closed-Loop Orchestrator
 
-File: [src/autotestgen/analyzer/discovery.py](F:/Codex-Hackathon/src/autotestgen/analyzer/discovery.py)
+The single-target control plane is [src/autotestgen/orchestrator/service.py](F:/Codex-Hackathon/src/autotestgen/orchestrator/service.py).
 
-`PythonProjectAnalyzer` performs AST-based discovery.
+`ClosedLoopOrchestrator` owns the loop for one selected target:
 
-What it does now:
+1. initialize SQLite storage
+2. discover targets through the available adapter set
+3. persist discovered targets
+4. resolve the requested target
+5. load a small set of successful prior examples for the same language/adapter
+6. build a `PromptContext` using the target adapter
+7. render prompt text with `PromptBuilder`
+8. generate or repair a test artifact
+9. persist the prompt and artifact metadata
+10. execute the generated test through the target adapter
+11. classify the execution result
+12. persist execution and failure data
+13. update uncovered lines and retry strategy
+14. retry until success, hard-stop, or iteration limit
 
-- scans Python files under the project root
-- skips tests, cache dirs, `.venv`, and generated output
-- extracts module targets
-- extracts function and method targets
-- captures imports
-- captures decorators
-- captures function source ranges
-- derives simple dependency hints from referenced names
+If a run succeeds and reaches the coverage threshold, the orchestrator reruns the generated test a few times to perform a basic stability check.
 
-What it does not do yet:
+### Retry and Strategy Selection
 
-- target ranking
-- call graph construction
-- coverage-guided target selection across the repo
-- type inference beyond what can be inferred from raw source
+The orchestrator does not retry blindly. It derives a strategy from the previous failure and uncovered lines, for example:
 
-### Prompt Builder
+- `baseline`
+- `import_recovery`
+- `argument_repair`
+- `assertion_repair`
+- `coverage_expansion`
 
-File: [src/autotestgen/generator/engine.py](F:/Codex-Hackathon/src/autotestgen/generator/engine.py)
+It also distinguishes between:
 
-`PromptBuilder` assembles the generation context into a prompt-like string.
+- initial generation
+- full regeneration
+- targeted repair of the previous generated test
 
-The current prompt includes:
+That metadata is stored on each `AttemptRecord`.
 
-- target id
-- target kind
-- imports
-- source code
-- nearby symbols from the same module
-- related existing tests
-- previous failure summaries
-- uncovered lines
+## Prompt and Generation Pipeline
 
-Important limitation:
+Prompt construction and heuristic generation live in [src/autotestgen/generator/engine.py](F:/Codex-Hackathon/src/autotestgen/generator/engine.py).
 
-The prompt exists and is persisted, but the current generator does not semantically use it. It is there to support the next stage of the architecture.
+### PromptBuilder
 
-### Generator
+`PromptBuilder` converts `PromptContext` into a structured prompt with embedded metadata tags. The prompt carries:
 
-File: [src/autotestgen/generator/engine.py](F:/Codex-Hackathon/src/autotestgen/generator/engine.py)
+- prompt version
+- strategy
+- language and framework
+- target contract
+- execution constraints
+- source under test
+- nearby context
+- prior failures
+- coverage goals
+- reference examples
+- output contract
 
-`StaticTestGenerator` is a deterministic template generator.
+The metadata block is machine-readable and is reused later by the generator.
 
-What it does now:
+### ModelBackedTestGenerator
 
-- generates pytest source for one function or module
-- infers default argument values from parameter names
-- handles async functions with `asyncio.run(...)`
-- writes generated tests into `.autotestgen/generated_tests`
-- validates generated syntax with `ast.parse`
+The top-level generator is [src/autotestgen/generator/model_backed.py](F:/Codex-Hackathon/src/autotestgen/generator/model_backed.py).
 
-What it does not do yet:
+Its flow is:
 
-- call an LLM
-- regenerate differently based on failure class
-- perform targeted repair of a previous attempt
-- synthesize mocks from dependency analysis
-- use few-shot examples from stored successes
+1. decide whether LLM use is allowed by `generator_mode`
+2. create an OpenAI-backed provider if an API key is available
+3. request test code from the provider
+4. normalize model output
+5. ask the active adapter to validate the generated test
+6. if provider use fails or validation fails, fall back to heuristic generation
 
-### Runner
+This means the real architecture today is not "template only". It is model-backed when configured, with deterministic fallback when model use is unavailable or invalid.
 
-File: [src/autotestgen/runner/pytest_runner.py](F:/Codex-Hackathon/src/autotestgen/runner/pytest_runner.py)
+### Heuristic Generation
 
-`PytestRunner` executes one generated test file with coverage enabled.
+Heuristic generation is still important:
 
-What it does now:
+- it guarantees a local fallback path
+- it preserves retry metadata such as prompt version and strategy
+- it generates language-specific test files when no provider is available
 
-- invokes `python -m pytest`
-- injects `project_root` and optional `src` into `PYTHONPATH`
-- runs the generated test file only
-- collects `stdout`, `stderr`, exit code, duration, and coverage JSON
-- extracts target-specific coverage when available
-- enforces per-attempt timeout
-- reruns passing tests for simple stability checks
+## Execution and Classification
 
-What it does not do yet:
+Execution is adapter-owned, not orchestrator-owned.
 
-- run in Docker
-- copy the repo into an isolated temp workspace per attempt
-- block filesystem or network side effects
-- collect branch coverage or mutation metrics
+That distinction matters:
 
-### Feedback Classifier
+- Python uses pytest-based execution and coverage capture
+- JavaScript and Go run through their own adapter-specific runners
+- failure classification is also language-specific, though it maps into a shared `FailureClassification` shape
 
-File: [src/autotestgen/feedback/classifier.py](F:/Codex-Hackathon/src/autotestgen/feedback/classifier.py)
+The orchestrator only relies on `ExecutionResult` and `FailureClassification`.
 
-`FailureClassifier` converts raw pytest output into structured failure metadata.
+For Python, the main runtime runner is [src/autotestgen/runner/pytest_runner.py](F:/Codex-Hackathon/src/autotestgen/runner/pytest_runner.py). It writes generated tests to the configured artifact root, executes them with coverage, captures stdout/stderr, and extracts missing lines for retry guidance.
 
-Currently implemented categories include:
+## Persistence
 
-- `collection_parse.syntax_error`
-- `collection_parse.indentation_error`
-- `import_dependency.import_error`
-- `runtime.attribute_error`
-- `runtime.type_error`
-- `runtime.value_error`
-- `assertion_semantics.assertion_failure`
-- `execution_control.timeout`
-- fallback `runtime.runtime_error`
-- synthetic `test_design.no_coverage_gain` when coverage is below target
+Persistence lives in [src/autotestgen/storage/sqlite.py](F:/Codex-Hackathon/src/autotestgen/storage/sqlite.py).
 
-This classifier is intentionally small right now. The retry policy is broader than the emitted taxonomy, so the classifier is one of the next components that needs expansion.
-
-### Storage
-
-File: [src/autotestgen/storage/sqlite.py](F:/Codex-Hackathon/src/autotestgen/storage/sqlite.py)
-
-`SQLiteStore` persists run state and artifacts.
-
-Tables:
+The SQLite schema currently includes:
 
 - `targets`
 - `prompts`
@@ -221,81 +203,128 @@ Tables:
 - `results`
 - `failure_classifications`
 
-What is stored today:
+Stored fields include:
 
-- discovered target metadata
-- prompt text per attempt
-- generated test source and file path
-- execution outcome
-- coverage summary
-- failure category/subtype/message
+- discovered target metadata and serialized payloads
+- prompt text, prompt version, and strategy
+- generated test path and source
+- generation mode and parent attempt number
+- targeted uncovered lines
+- provider name, model name, and fallback reason
+- execution result, duration, and coverage payload
+- failure category, subtype, recoverability, message, and summary
 
-What is not stored yet:
+The store also exposes a small retrieval API for successful historical examples, which are fed back into prompt construction.
 
-- prompt version
-- generation strategy
-- repaired vs regenerated attempt mode
-- parent-child attempt lineage
-- successful pattern library
+## Repository Workflow
 
-## Data Model
+Repository-level automation lives in [src/autotestgen/repo/service.py](F:/Codex-Hackathon/src/autotestgen/repo/service.py).
 
-File: [src/autotestgen/models.py](F:/Codex-Hackathon/src/autotestgen/models.py)
-
-The runtime is built around a small set of dataclasses:
-
-- `FunctionTarget`
-- `ModuleTarget`
-- `ProjectInventory`
-- `PromptContext`
-- `GeneratedTestArtifact`
-- `CoverageResult`
-- `ExecutionResult`
-- `FailureClassification`
-- `AttemptRecord`
-- `OrchestrationResult`
-
-These models provide the contract between discovery, generation, execution, classification, and persistence.
-
-## Current End-to-End Loop
+`RepositoryWorkflowRunner` wraps the single-target orchestrator with repo intake and reporting:
 
 ```text
-discover targets
-  -> persist targets
-  -> select target
-  -> build prompt context
-  -> generate deterministic test
-  -> validate syntax
-  -> run pytest with coverage
-  -> classify result
-  -> persist prompt/result/failure
-  -> retry or stop
+source repo/path/url
+  -> RepositoryIntake prepares workspace
+  -> ProjectDetector infers language/framework/package manager
+  -> EnvironmentBootstrapper installs dependencies when needed
+  -> ClosedLoopOrchestrator discovers targets
+  -> selected targets run through the normal closed loop
+  -> optional RepoRepairEngine edits source files and revalidates
+  -> report JSON + markdown review + unified diff patch are written
 ```
 
-This is already a real closed loop, but it is still a scaffold rather than a full adaptive agent.
+### Intake
 
-## What The Architecture Is Missing
+[src/autotestgen/repo/intake.py](F:/Codex-Hackathon/src/autotestgen/repo/intake.py) handles:
 
-These are the main gaps between the implemented system and the intended long-term design:
+- local path copy into a fresh workspace
+- remote `git clone`
+- optional branch/ref/commit checkout
+- timestamped session directory naming
 
-- LLM-backed generation instead of deterministic templates
-- a repair stage before full regeneration
-- real sandboxing or containerized execution
-- richer failure taxonomy aligned with retry behavior
-- target ranking and discovery heuristics
-- stronger test quality signals beyond line coverage
-- benchmark and prompt-version tracking as first-class runtime inputs
+### Detection
 
-## Recommended Next Architecture Step
+[src/autotestgen/repo/detect.py](F:/Codex-Hackathon/src/autotestgen/repo/detect.py) infers:
 
-The next change should not be a multi-agent rewrite.
+- language
+- test framework
+- package manager
+- bootstrap method
 
-The next architectural upgrade should be:
+It also supports mixed-language repositories.
 
-1. keep the current single orchestrator
-2. add a real generation backend that uses `PromptContext`
-3. add a `RepairEngine` for surgical fixes
-4. expand the classifier only where it changes retry behavior
-5. isolate execution in a temp workspace before adding Docker
+### Bootstrap
 
-That preserves the current shape of the codebase while making the loop meaningfully adaptive.
+[src/autotestgen/repo/bootstrap.py](F:/Codex-Hackathon/src/autotestgen/repo/bootstrap.py) installs repo dependencies based on the detected project shape:
+
+- Python: creates `.autotestgen/venv`, installs `pytest`, `pytest-cov`, then repo dependencies
+- JavaScript: runs the appropriate package-manager install command
+- Go: runs `go mod download`
+
+### Source Repair
+
+[src/autotestgen/repo/repair.py](F:/Codex-Hackathon/src/autotestgen/repo/repair.py) is separate from generated-test repair.
+
+It attempts to repair the repository source file itself by:
+
+- reading the current source
+- building a repair prompt from the failing generated test and execution logs
+- requesting a full rewritten source file from the provider
+- writing the new source
+- rerunning the previous generated test to verify the repair
+- reverting the source if validation still fails
+
+This is only available when model-backed repair is configured.
+
+## Benchmark Architecture
+
+Benchmark execution lives in [src/autotestgen/benchmark/runner.py](F:/Codex-Hackathon/src/autotestgen/benchmark/runner.py).
+
+`BenchmarkRunner`:
+
+- loads a JSON spec of benchmark targets
+- creates an isolated artifact root per benchmark target
+- instantiates a fresh `ClosedLoopOrchestrator` per spec entry
+- runs each target independently
+- aggregates pass rate, coverage gain, fallback rate, and repair success metrics
+- optionally writes a JSON report to disk
+
+This keeps benchmark execution close to the real runtime path instead of introducing a second benchmarking-only execution stack.
+
+## Current Artifact Layout
+
+The runtime writes generated state under gitignored directories:
+
+- `.autotestgen/state.db`
+- `.autotestgen/generated_tests/`
+- `.autotestgen/benchmarks/`
+- `.autotestgen_repo_runs/<session>/`
+
+Repository workflow outputs typically include:
+
+- `repo_run_report.json`
+- `repo_review.md`
+- `generated_tests.patch`
+
+## Current Limitations
+
+These limitations are real in the current implementation:
+
+- execution is not sandboxed or containerized
+- repository bootstrap can modify the workspace clone by installing dependencies
+- stability checking is basic rerun-based validation, not full flake detection
+- target ranking is still lightweight and mostly adapter-driven
+- failure taxonomies are normalized but not deeply specialized across all languages
+- repository source repair depends on provider access and rewrites whole files rather than patching AST nodes
+- benchmark runs are sequential, not parallelized
+
+## Architectural Summary
+
+The implemented architecture is a layered pipeline:
+
+- adapters specialize language behavior
+- the closed-loop orchestrator owns retry logic and persistence
+- prompt construction and generation are shared across languages
+- repository workflows and benchmarks reuse the same orchestrator instead of bypassing it
+
+That is the right shape for the current project. The system is already beyond a Python-only scaffold, but it is still intentionally pragmatic: one orchestrator, one persistence layer, adapter-owned execution, and optional model-backed generation with deterministic fallback.
