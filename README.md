@@ -4,6 +4,10 @@
 
 It discovers candidate functions and modules, generates tests, executes them in isolated workspaces, measures coverage, classifies failures, stores attempts in SQLite, and retries with repair feedback. The current implementation includes Python, JavaScript, and Go adapters, with both heuristic and OpenAI-backed generation paths.
 
+## Project Demo
+
+Demo video: https://drive.google.com/file/d/1nRmZXt7bTT4L5_yfXwTRR3s10u6IqlYi/view?usp=sharing
+
 ## Current Scope
 
 - language adapters for Python, JavaScript, and Go
