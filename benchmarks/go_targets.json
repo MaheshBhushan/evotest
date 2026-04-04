@@ -1,0 +1,15 @@
+{
+  "project_root": "fixtures/go_project",
+  "targets": [
+    {
+      "name": "add",
+      "language": "go",
+      "target": "pkg/math/add.go::Add"
+    },
+    {
+      "name": "choose_bucket",
+      "language": "go",
+      "target": "pkg/chooser/chooser.go::ChooseBucket"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "targets": [
+    {
+      "name": "add",
+      "project_root": "fixtures/basic_project",
+      "target": "src/samplelib/math_add.py::add"
+    },
+    {
+      "name": "choose_bucket",
+      "project_root": "fixtures/basic_project",
+      "target": "src/samplelib/chooser.py::choose_bucket"
+    },
+    {
+      "name": "echo_name",
+      "project_root": "fixtures/basic_project",
+      "target": "src/samplelib/text_utils.py::echo_name"
+    },
+    {
+      "name": "classify_score",
+      "project_root": "fixtures/basic_project",
+      "target": "src/samplelib/score.py::classify_score"
+    },
+    {
+      "name": "greet",
+      "project_root": "fixtures/basic_project",
+      "target": "src/samplelib/greeter.py::Greeter.greet"
+    },
+    {
+      "name": "join_pair",
+      "project_root": "fixtures/basic_project",
+      "target": "src/samplelib/pair_formatter.py::PairFormatter.join"
+    },
+    {
+      "name": "read_text",
+      "project_root": "fixtures/basic_project",
+      "target": "src/samplelib/file_reader.py::read_text"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "project_root": "fixtures/javascript_project",
+  "targets": [
+    {
+      "name": "add",
+      "language": "javascript",
+      "target": "src/math.js::add"
+    },
+    {
+      "name": "choose_bucket",
+      "language": "javascript",
+      "target": "src/chooser.js::chooseBucket"
+    }
+  ]
+}
