@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from autotestgen.feedback import FailureClassifier
-from autotestgen.models import ExecutionResult
+from evotest.feedback import FailureClassifier
+from evotest.models import ExecutionResult
 
 
 def test_classifier_detects_import_error() -> None:

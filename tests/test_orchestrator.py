@@ -1,8 +1,8 @@
 from pathlib import Path
 import shutil
 
-from autotestgen.config import HarnessConfig
-from autotestgen.models import (
+from evotest.config import HarnessConfig
+from evotest.models import (
     CoverageResult,
     ExecutionResult,
     FailureClassification,
@@ -11,7 +11,7 @@ from autotestgen.models import (
     PromptContext,
     ProjectInventory,
 )
-from autotestgen.orchestrator import ClosedLoopOrchestrator
+from evotest.orchestrator import ClosedLoopOrchestrator
 
 
 def test_orchestrator_runs_closed_loop_for_simple_function(tmp_path: Path) -> None:
@@ -21,7 +21,7 @@ def test_orchestrator_runs_closed_loop_for_simple_function(tmp_path: Path) -> No
     )
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         max_iterations=3,
         max_runtime_seconds=15,
         coverage_target=80.0,
@@ -48,7 +48,7 @@ def test_orchestrator_runs_closed_loop_for_instance_method(tmp_path: Path) -> No
     )
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         max_iterations=3,
         max_runtime_seconds=15,
         coverage_target=80.0,
@@ -219,7 +219,7 @@ def test_orchestrator_uses_adapter_methods(tmp_path: Path) -> None:
     adapter = _AdapterSpy(tmp_path)
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         max_iterations=2,
         generator_mode="heuristic",
     )
@@ -240,7 +240,7 @@ def test_orchestrator_delegates_repair_to_adapter(tmp_path: Path) -> None:
     adapter.should_fail_first = True
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         max_iterations=3,
         generator_mode="heuristic",
     )
@@ -263,7 +263,7 @@ def test_orchestrator_discovers_mixed_language_inventory(tmp_path: Path) -> None
     inventory = ClosedLoopOrchestrator(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="auto",
             generator_mode="heuristic",
         )
@@ -285,7 +285,7 @@ def test_orchestrator_routes_javascript_target_in_polyglot_repo(tmp_path: Path) 
     (src_dir / "math.js").write_text("export function add(a, b) { return a + b; }\n", encoding="utf-8")
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         language="auto",
         generator_mode="heuristic",
         max_iterations=3,

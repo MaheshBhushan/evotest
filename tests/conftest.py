@@ -22,7 +22,7 @@ def _pick_pytest_tmp_root() -> Path:
     for env_var in ("TMPDIR", "TEMP", "TMP"):
         value = os.environ.get(env_var)
         if value:
-            candidates.append(Path(value) / "autotestgen-pytest")
+            candidates.append(Path(value) / "evotest-pytest")
     for candidate in candidates:
         try:
             candidate.mkdir(parents=True, exist_ok=True)

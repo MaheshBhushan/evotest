@@ -1,10 +1,10 @@
 import json
 from pathlib import Path
 
-from autotestgen.adapters.go import GoLanguageAdapter
-from autotestgen.adapters.javascript import JavaScriptLanguageAdapter
-from autotestgen.benchmark import BenchmarkRunner
-from autotestgen.config import HarnessConfig
+from evotest.adapters.go import GoLanguageAdapter
+from evotest.adapters.javascript import JavaScriptLanguageAdapter
+from evotest.benchmark import BenchmarkRunner
+from evotest.config import HarnessConfig
 
 
 def test_benchmark_runner_writes_metrics_report(tmp_path: Path) -> None:
@@ -68,7 +68,7 @@ def test_benchmark_runner_writes_metrics_report(tmp_path: Path) -> None:
     runner = BenchmarkRunner(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             generator_mode="heuristic",
             max_iterations=3,
             max_runtime_seconds=15,
@@ -94,7 +94,7 @@ def test_benchmark_runner_writes_metrics_report(tmp_path: Path) -> None:
     assert all(target.language == "python" for target in report.targets)
     assert choose_bucket.repair_attempts == 1
     assert choose_bucket.repair_success_by_subtype["no_coverage_gain"]["successes"] == 1
-    assert not (project_root / ".autotestgen").exists()
+    assert not (project_root / ".evotest").exists()
 
 
 def test_benchmark_runner_loads_shipped_language_specific_specs(tmp_path: Path) -> None:

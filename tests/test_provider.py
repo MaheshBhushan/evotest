@@ -1,4 +1,4 @@
-from autotestgen.generator.provider import OpenAIResponsesProvider
+from evotest.generator.provider import OpenAIResponsesProvider
 
 
 def test_openai_provider_uses_python_specific_instructions() -> None:

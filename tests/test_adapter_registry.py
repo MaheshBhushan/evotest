@@ -1,14 +1,14 @@
 from pathlib import Path
 
-from autotestgen.adapters.registry import detect_language, detect_languages, get_adapter
-from autotestgen.config import HarnessConfig
+from evotest.adapters.registry import detect_language, detect_languages, get_adapter
+from evotest.config import HarnessConfig
 
 
 def test_adapter_registry_returns_python_adapter(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text("[project]\nname='demo'\n", encoding="utf-8")
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         language="python",
     )
 
@@ -44,7 +44,7 @@ def test_adapter_registry_returns_go_adapter(tmp_path: Path) -> None:
     (tmp_path / "go.mod").write_text("module example.com/demo\n\ngo 1.22\n", encoding="utf-8")
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         language="go",
     )
 

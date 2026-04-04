@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "autotestgen"
+name = "evotest"
 version = "0.1.0"
-description = "Closed-loop Python test generation and execution harness."
+description = "Closed-loop multi-language test generation and execution harness."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-autotestgen = "autotestgen.cli:main"
+evotest = "evotest.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

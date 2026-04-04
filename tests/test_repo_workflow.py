@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from autotestgen.config import HarnessConfig
-from autotestgen.repo.models import BootstrapResult
-from autotestgen.repo.detect import ProjectDetector
-from autotestgen.repo.repair import SourceRepairOutcome
-from autotestgen.repo.service import RepositoryWorkflowRunner
+from evotest.config import HarnessConfig
+from evotest.repo.models import BootstrapResult
+from evotest.repo.detect import ProjectDetector
+from evotest.repo.repair import SourceRepairOutcome
+from evotest.repo.service import RepositoryWorkflowRunner
 
 
 def test_project_detector_identifies_python_project(tmp_path: Path) -> None:
@@ -61,14 +61,14 @@ def test_repository_workflow_runs_local_repo_and_writes_outputs(tmp_path: Path) 
     assert report.outputs.report_path.exists()
     assert report.outputs.review_path.exists()
     assert report.outputs.patch_path.exists()
-    assert not (source_repo / ".autotestgen").exists()
+    assert not (source_repo / ".evotest").exists()
     assert report.targets[0].generated_files
     generated_file = report.clone_root / report.targets[0].generated_files[0]
     assert generated_file.exists()
     patch_text = report.outputs.patch_path.read_text(encoding="utf-8")
     assert generated_file.name in patch_text
     review_text = report.outputs.review_path.read_text(encoding="utf-8")
-    assert "AutoTestGen Review" in review_text
+    assert "EvoTest Review" in review_text
     assert report.targets[0].target_id in review_text
 
 

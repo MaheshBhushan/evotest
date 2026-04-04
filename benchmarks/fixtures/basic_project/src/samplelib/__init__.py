@@ -1,1 +1,1 @@
-"""Benchmark fixture package for autotestgen evaluation."""
+"""Benchmark fixture package for evotest evaluation."""

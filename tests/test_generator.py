@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from autotestgen.generator import StaticTestGenerator
-from autotestgen.models import FunctionTarget
+from evotest.generator import StaticTestGenerator
+from evotest.models import FunctionTarget
 
 
 def test_generator_emits_valid_pytest_source(tmp_path: Path) -> None:
@@ -18,8 +18,8 @@ def test_generator_emits_valid_pytest_source(tmp_path: Path) -> None:
     )
 
     prompt_text = (
-        '<autotestgen-metadata>{"prompt_version":"feedback-v2","strategy":"baseline",'
-        '"previous_failures":[],"uncovered_lines":[]}</autotestgen-metadata>'
+        '<evotest-metadata>{"prompt_version":"feedback-v2","strategy":"baseline",'
+        '"previous_failures":[],"uncovered_lines":[]}</evotest-metadata>'
     )
     artifact = generator.generate(target, prompt_text, tmp_path, 1)
 
@@ -42,8 +42,8 @@ def test_generator_uses_prompt_feedback_for_import_recovery(tmp_path: Path) -> N
     )
 
     prompt_text = (
-        '<autotestgen-metadata>{"prompt_version":"feedback-v2","strategy":"import_recovery",'
-        '"previous_failures":["import_error: import failed"],"uncovered_lines":[]}</autotestgen-metadata>'
+        '<evotest-metadata>{"prompt_version":"feedback-v2","strategy":"import_recovery",'
+        '"previous_failures":["import_error: import failed"],"uncovered_lines":[]}</evotest-metadata>'
     )
     artifact = generator.generate(target, prompt_text, tmp_path, 2)
 
@@ -65,8 +65,8 @@ def test_generator_does_not_emit_tautological_broad_assertions(tmp_path: Path) -
     )
 
     prompt_text = (
-        '<autotestgen-metadata>{"prompt_version":"feedback-v2","strategy":"coverage_expansion",'
-        '"previous_failures":["no_coverage_gain: retry"],"uncovered_lines":[1,2]}</autotestgen-metadata>'
+        '<evotest-metadata>{"prompt_version":"feedback-v2","strategy":"coverage_expansion",'
+        '"previous_failures":["no_coverage_gain: retry"],"uncovered_lines":[1,2]}</evotest-metadata>'
     )
     artifact = generator.generate(target, prompt_text, tmp_path, 3)
 
@@ -93,8 +93,8 @@ def test_generator_coverage_expansion_adds_branch_targeted_cases(tmp_path: Path)
     )
 
     prompt_text = (
-        '<autotestgen-metadata>{"prompt_version":"feedback-v2","strategy":"coverage_expansion",'
-        '"previous_failures":["no_coverage_gain: retry"],"uncovered_lines":[3]}</autotestgen-metadata>'
+        '<evotest-metadata>{"prompt_version":"feedback-v2","strategy":"coverage_expansion",'
+        '"previous_failures":["no_coverage_gain: retry"],"uncovered_lines":[3]}</evotest-metadata>'
     )
     artifact = generator.generate(target, prompt_text, tmp_path, 4)
 
@@ -122,8 +122,8 @@ def test_generator_supports_instance_method_targets(tmp_path: Path) -> None:
     )
 
     prompt_text = (
-        '<autotestgen-metadata>{"prompt_version":"feedback-v2","strategy":"baseline",'
-        '"previous_failures":[],"uncovered_lines":[]}</autotestgen-metadata>'
+        '<evotest-metadata>{"prompt_version":"feedback-v2","strategy":"baseline",'
+        '"previous_failures":[],"uncovered_lines":[]}</evotest-metadata>'
     )
     artifact = generator.generate(target, prompt_text, tmp_path, 5)
 

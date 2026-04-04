@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from autotestgen.cli import build_config, build_parser
+from evotest.cli import build_config, build_parser
 
 
 def test_build_config_reads_generation_settings(monkeypatch, tmp_path: Path) -> None:
@@ -47,13 +47,13 @@ def test_build_parser_supports_benchmark_command(tmp_path: Path) -> None:
             "--spec",
             "benchmarks/custom.json",
             "--report",
-            ".autotestgen/custom-report.json",
+            ".evotest/custom-report.json",
         ]
     )
 
     assert args.command == "benchmark"
     assert args.spec == "benchmarks/custom.json"
-    assert args.report == ".autotestgen/custom-report.json"
+    assert args.report == ".evotest/custom-report.json"
 
 
 def test_build_parser_defaults_language_to_auto() -> None:

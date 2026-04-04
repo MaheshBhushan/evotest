@@ -2,7 +2,7 @@
 
 This document describes the architecture that is implemented in this repository today.
 
-`autotestgen` is a closed-loop test generation harness with three main execution modes:
+`evotest` is a closed-loop test generation harness with three main execution modes:
 
 - single-target discovery and execution
 - repository workflows against a local path or Git repo
@@ -39,7 +39,7 @@ The architecture is not multi-agent. It is a single-process orchestration model 
 
 ## Core Runtime Model
 
-The runtime revolves around a few shared contracts in [src/autotestgen/models.py](F:/Codex-Hackathon/src/autotestgen/models.py):
+The runtime revolves around a few shared contracts in [src/evotest/models.py](F:/Codex-Hackathon/src/evotest/models.py):
 
 - `FunctionTarget` and `ModuleTarget`: discovered testable units
 - `ProjectInventory`: language-scoped or merged target inventory
@@ -54,7 +54,7 @@ These models let the orchestrator stay generic while each adapter owns language-
 
 ## Configuration
 
-Configuration lives in [src/autotestgen/config.py](F:/Codex-Hackathon/src/autotestgen/config.py).
+Configuration lives in [src/evotest/config.py](F:/Codex-Hackathon/src/evotest/config.py).
 
 `HarnessConfig` controls:
 
@@ -66,11 +66,11 @@ Configuration lives in [src/autotestgen/config.py](F:/Codex-Hackathon/src/autote
 - OpenAI model settings and API key
 - Python executable and pytest command for execution/bootstrap
 
-Artifact roots default under `.autotestgen/`, while repository workflows default under `.autotestgen_repo_runs/`.
+Artifact roots default under `.evotest/`, while repository workflows default under `.evotest_repo_runs/`.
 
 ## Adapter Layer
 
-The adapter contract is defined in [src/autotestgen/adapters/base.py](F:/Codex-Hackathon/src/autotestgen/adapters/base.py).
+The adapter contract is defined in [src/evotest/adapters/base.py](F:/Codex-Hackathon/src/evotest/adapters/base.py).
 
 Each language adapter is responsible for:
 
@@ -85,15 +85,15 @@ Each language adapter is responsible for:
 
 Current adapters:
 
-- Python: [src/autotestgen/adapters/python/adapter.py](F:/Codex-Hackathon/src/autotestgen/adapters/python/adapter.py)
-- JavaScript: [src/autotestgen/adapters/javascript/adapter.py](F:/Codex-Hackathon/src/autotestgen/adapters/javascript/adapter.py)
-- Go: [src/autotestgen/adapters/go/adapter.py](F:/Codex-Hackathon/src/autotestgen/adapters/go/adapter.py)
+- Python: [src/evotest/adapters/python/adapter.py](F:/Codex-Hackathon/src/evotest/adapters/python/adapter.py)
+- JavaScript: [src/evotest/adapters/javascript/adapter.py](F:/Codex-Hackathon/src/evotest/adapters/javascript/adapter.py)
+- Go: [src/evotest/adapters/go/adapter.py](F:/Codex-Hackathon/src/evotest/adapters/go/adapter.py)
 
-Language detection and adapter selection live in [src/autotestgen/adapters/registry.py](F:/Codex-Hackathon/src/autotestgen/adapters/registry.py). In `auto` mode the system can merge inventories from multiple languages into one mixed inventory.
+Language detection and adapter selection live in [src/evotest/adapters/registry.py](F:/Codex-Hackathon/src/evotest/adapters/registry.py). In `auto` mode the system can merge inventories from multiple languages into one mixed inventory.
 
 ## Closed-Loop Orchestrator
 
-The single-target control plane is [src/autotestgen/orchestrator/service.py](F:/Codex-Hackathon/src/autotestgen/orchestrator/service.py).
+The single-target control plane is [src/evotest/orchestrator/service.py](F:/Codex-Hackathon/src/evotest/orchestrator/service.py).
 
 `ClosedLoopOrchestrator` owns the loop for one selected target:
 
@@ -134,7 +134,7 @@ That metadata is stored on each `AttemptRecord`.
 
 ## Prompt and Generation Pipeline
 
-Prompt construction and heuristic generation live in [src/autotestgen/generator/engine.py](F:/Codex-Hackathon/src/autotestgen/generator/engine.py).
+Prompt construction and heuristic generation live in [src/evotest/generator/engine.py](F:/Codex-Hackathon/src/evotest/generator/engine.py).
 
 ### PromptBuilder
 
@@ -156,7 +156,7 @@ The metadata block is machine-readable and is reused later by the generator.
 
 ### ModelBackedTestGenerator
 
-The top-level generator is [src/autotestgen/generator/model_backed.py](F:/Codex-Hackathon/src/autotestgen/generator/model_backed.py).
+The top-level generator is [src/evotest/generator/model_backed.py](F:/Codex-Hackathon/src/evotest/generator/model_backed.py).
 
 Its flow is:
 
@@ -189,11 +189,11 @@ That distinction matters:
 
 The orchestrator only relies on `ExecutionResult` and `FailureClassification`.
 
-For Python, the main runtime runner is [src/autotestgen/runner/pytest_runner.py](F:/Codex-Hackathon/src/autotestgen/runner/pytest_runner.py). It writes generated tests to the configured artifact root, executes them with coverage, captures stdout/stderr, and extracts missing lines for retry guidance.
+For Python, the main runtime runner is [src/evotest/runner/pytest_runner.py](F:/Codex-Hackathon/src/evotest/runner/pytest_runner.py). It writes generated tests to the configured artifact root, executes them with coverage, captures stdout/stderr, and extracts missing lines for retry guidance.
 
 ## Persistence
 
-Persistence lives in [src/autotestgen/storage/sqlite.py](F:/Codex-Hackathon/src/autotestgen/storage/sqlite.py).
+Persistence lives in [src/evotest/storage/sqlite.py](F:/Codex-Hackathon/src/evotest/storage/sqlite.py).
 
 The SQLite schema currently includes:
 
@@ -218,7 +218,7 @@ The store also exposes a small retrieval API for successful historical examples,
 
 ## Repository Workflow
 
-Repository-level automation lives in [src/autotestgen/repo/service.py](F:/Codex-Hackathon/src/autotestgen/repo/service.py).
+Repository-level automation lives in [src/evotest/repo/service.py](F:/Codex-Hackathon/src/evotest/repo/service.py).
 
 `RepositoryWorkflowRunner` wraps the single-target orchestrator with repo intake and reporting:
 
@@ -235,7 +235,7 @@ source repo/path/url
 
 ### Intake
 
-[src/autotestgen/repo/intake.py](F:/Codex-Hackathon/src/autotestgen/repo/intake.py) handles:
+[src/evotest/repo/intake.py](F:/Codex-Hackathon/src/evotest/repo/intake.py) handles:
 
 - local path copy into a fresh workspace
 - remote `git clone`
@@ -244,7 +244,7 @@ source repo/path/url
 
 ### Detection
 
-[src/autotestgen/repo/detect.py](F:/Codex-Hackathon/src/autotestgen/repo/detect.py) infers:
+[src/evotest/repo/detect.py](F:/Codex-Hackathon/src/evotest/repo/detect.py) infers:
 
 - language
 - test framework
@@ -255,15 +255,15 @@ It also supports mixed-language repositories.
 
 ### Bootstrap
 
-[src/autotestgen/repo/bootstrap.py](F:/Codex-Hackathon/src/autotestgen/repo/bootstrap.py) installs repo dependencies based on the detected project shape:
+[src/evotest/repo/bootstrap.py](F:/Codex-Hackathon/src/evotest/repo/bootstrap.py) installs repo dependencies based on the detected project shape:
 
-- Python: creates `.autotestgen/venv`, installs `pytest`, `pytest-cov`, then repo dependencies
+- Python: creates `.evotest/venv`, installs `pytest`, `pytest-cov`, then repo dependencies
 - JavaScript: runs the appropriate package-manager install command
 - Go: runs `go mod download`
 
 ### Source Repair
 
-[src/autotestgen/repo/repair.py](F:/Codex-Hackathon/src/autotestgen/repo/repair.py) is separate from generated-test repair.
+[src/evotest/repo/repair.py](F:/Codex-Hackathon/src/evotest/repo/repair.py) is separate from generated-test repair.
 
 It attempts to repair the repository source file itself by:
 
@@ -278,7 +278,7 @@ This is only available when model-backed repair is configured.
 
 ## Benchmark Architecture
 
-Benchmark execution lives in [src/autotestgen/benchmark/runner.py](F:/Codex-Hackathon/src/autotestgen/benchmark/runner.py).
+Benchmark execution lives in [src/evotest/benchmark/runner.py](F:/Codex-Hackathon/src/evotest/benchmark/runner.py).
 
 `BenchmarkRunner`:
 
@@ -295,10 +295,10 @@ This keeps benchmark execution close to the real runtime path instead of introdu
 
 The runtime writes generated state under gitignored directories:
 
-- `.autotestgen/state.db`
-- `.autotestgen/generated_tests/`
-- `.autotestgen/benchmarks/`
-- `.autotestgen_repo_runs/<session>/`
+- `.evotest/state.db`
+- `.evotest/generated_tests/`
+- `.evotest/benchmarks/`
+- `.evotest_repo_runs/<session>/`
 
 Repository workflow outputs typically include:
 

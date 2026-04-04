@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from autotestgen.config import HarnessConfig
-from autotestgen.generator import ModelBackedTestGenerator
-from autotestgen.models import FunctionTarget, GeneratedTestArtifact
+from evotest.config import HarnessConfig
+from evotest.generator import ModelBackedTestGenerator
+from evotest.models import FunctionTarget, GeneratedTestArtifact
 
 
 class _FakeProvider:
@@ -66,7 +66,7 @@ class _SpyAdapter:
 def test_model_backed_generator_delegates_validation_to_adapter(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -89,7 +89,7 @@ def test_model_backed_generator_delegates_validation_to_adapter(tmp_path: Path) 
 
     artifact = generator.generate(
         target,
-        '<autotestgen-metadata>{"prompt_version":"feedback-v2","strategy":"baseline","previous_failures":[],"uncovered_lines":[]}</autotestgen-metadata>',
+        '<evotest-metadata>{"prompt_version":"feedback-v2","strategy":"baseline","previous_failures":[],"uncovered_lines":[]}</evotest-metadata>',
         tmp_path,
         1,
     )

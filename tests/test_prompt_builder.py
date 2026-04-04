@@ -1,7 +1,7 @@
-from autotestgen.adapters.python.prompting import PythonPromptContextBuilder
-from autotestgen.config import HarnessConfig
-from autotestgen.generator.engine import PromptBuilder
-from autotestgen.models import (
+from evotest.adapters.python.prompting import PythonPromptContextBuilder
+from evotest.config import HarnessConfig
+from evotest.generator.engine import PromptBuilder
+from evotest.models import (
     AttemptRecord,
     CoverageResult,
     ExecutionResult,
@@ -72,7 +72,7 @@ def test_python_prompt_context_collects_execution_evidence_and_examples(tmp_path
         target_id=target.target_id,
         attempt_number=1,
         prompt_text="prompt",
-        generated_test_path=tmp_path / ".autotestgen" / "generated_1.py",
+        generated_test_path=tmp_path / ".evotest" / "generated_1.py",
         generated_test_source="def test_generated_case():\n    assert add(1, 1) == 2\n",
         execution_result=ExecutionResult(
             target_id=target.target_id,
@@ -83,7 +83,7 @@ def test_python_prompt_context_collects_execution_evidence_and_examples(tmp_path
             stderr="AssertionError: wrong result",
             duration_seconds=0.01,
             coverage=CoverageResult(statements=2, missing=1, coverage_percent=50.0, missing_lines=[2]),
-            test_file_path=tmp_path / ".autotestgen" / "generated_1.py",
+            test_file_path=tmp_path / ".evotest" / "generated_1.py",
         ),
         failure=FailureClassification(
             category="assertion_semantics",
@@ -96,7 +96,7 @@ def test_python_prompt_context_collects_execution_evidence_and_examples(tmp_path
     builder = PythonPromptContextBuilder(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="python",
         )
     )

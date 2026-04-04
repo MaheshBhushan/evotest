@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from autotestgen.config import HarnessConfig
-from autotestgen.generator import ModelBackedTestGenerator
-from autotestgen.models import FunctionTarget
+from evotest.config import HarnessConfig
+from evotest.generator import ModelBackedTestGenerator
+from evotest.models import FunctionTarget
 
 
 class _FakeProvider:
@@ -55,15 +55,15 @@ def _method_target(tmp_path: Path) -> FunctionTarget:
 
 def _prompt(strategy: str = "baseline") -> str:
     return (
-        f'<autotestgen-metadata>{{"prompt_version":"feedback-v2","strategy":"{strategy}",'
-        '"previous_failures":[],"uncovered_lines":[]}}</autotestgen-metadata>'
+        f'<evotest-metadata>{{"prompt_version":"feedback-v2","strategy":"{strategy}",'
+        '"previous_failures":[],"uncovered_lines":[]}}</evotest-metadata>'
     )
 
 
 def test_model_backed_generator_uses_provider_output(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -90,7 +90,7 @@ def test_model_backed_generator_uses_provider_output(tmp_path: Path) -> None:
 def test_model_backed_generator_falls_back_without_api_key(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="auto",
         openai_api_key=None,
     )
@@ -108,7 +108,7 @@ def test_model_backed_generator_falls_back_without_api_key(tmp_path: Path) -> No
 def test_model_backed_generator_falls_back_on_invalid_output(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -127,7 +127,7 @@ def test_model_backed_generator_falls_back_on_invalid_output(tmp_path: Path) -> 
 def test_model_backed_generator_rejects_weak_assertions(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -149,7 +149,7 @@ def test_model_backed_generator_rejects_weak_assertions(tmp_path: Path) -> None:
 def test_model_backed_generator_rejects_forbidden_side_effects(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -171,7 +171,7 @@ def test_model_backed_generator_rejects_forbidden_side_effects(tmp_path: Path) -
 def test_model_backed_generator_rejects_duplicate_test_names(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -194,7 +194,7 @@ def test_model_backed_generator_rejects_duplicate_test_names(tmp_path: Path) -> 
 def test_model_backed_generator_rejects_missing_target_reference(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -216,7 +216,7 @@ def test_model_backed_generator_rejects_missing_target_reference(tmp_path: Path)
 def test_model_backed_generator_rejects_string_only_target_reference(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -239,7 +239,7 @@ def test_model_backed_generator_rejects_string_only_target_reference(tmp_path: P
 def test_model_backed_generator_accepts_aliased_target_import(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -262,7 +262,7 @@ def test_model_backed_generator_accepts_aliased_target_import(tmp_path: Path) ->
 def test_model_backed_generator_rejects_direct_os_system_import(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -286,7 +286,7 @@ def test_model_backed_generator_rejects_direct_os_system_import(tmp_path: Path) 
 def test_model_backed_generator_accepts_class_based_pytest_output(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -310,7 +310,7 @@ def test_model_backed_generator_accepts_class_based_pytest_output(tmp_path: Path
 def test_model_backed_generator_rejects_method_outputs_that_only_reference_owner_class(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -333,7 +333,7 @@ def test_model_backed_generator_rejects_method_outputs_that_only_reference_owner
 def test_model_backed_generator_rejects_method_outputs_that_only_use_hasattr(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -355,7 +355,7 @@ def test_model_backed_generator_rejects_method_outputs_that_only_use_hasattr(tmp
 def test_model_backed_generator_accepts_method_outputs_that_call_target_method(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )
@@ -378,7 +378,7 @@ def test_model_backed_generator_accepts_method_outputs_that_call_target_method(t
 def test_model_backed_generator_rejects_method_outputs_that_call_wrong_object(tmp_path: Path) -> None:
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         generator_mode="llm",
         openai_api_key="test-key",
     )

@@ -11,8 +11,8 @@ env/
 .env
 .env.*
 .tmp/
-.autotestgen/
-.autotestgen_repo_runs/
+.evotest/
+.evotest_repo_runs/
 .codex-review-*/
 pytest-cache-files-*/
 tmp*/

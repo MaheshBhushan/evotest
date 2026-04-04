@@ -2,13 +2,13 @@ import os
 import shutil
 from pathlib import Path
 
-from autotestgen.adapters.go import GoLanguageAdapter
-from autotestgen.adapters.go.generation import GoHeuristicGenerator
-from autotestgen.adapters.go.repair import GoRepairEngine
-from autotestgen.adapters.go.classifier import GoFailureClassifier
-from autotestgen.adapters.go.runner import GoRunner
-from autotestgen.config import HarnessConfig
-from autotestgen.models import ExecutionResult, FailureClassification, GeneratedTestArtifact
+from evotest.adapters.go import GoLanguageAdapter
+from evotest.adapters.go.generation import GoHeuristicGenerator
+from evotest.adapters.go.repair import GoRepairEngine
+from evotest.adapters.go.classifier import GoFailureClassifier
+from evotest.adapters.go.runner import GoRunner
+from evotest.config import HarnessConfig
+from evotest.models import ExecutionResult, FailureClassification, GeneratedTestArtifact
 
 
 def test_go_adapter_discovers_and_generates_heuristic_tests(tmp_path: Path) -> None:
@@ -25,7 +25,7 @@ def test_go_adapter_discovers_and_generates_heuristic_tests(tmp_path: Path) -> N
     adapter = GoLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="go",
             generator_mode="heuristic",
         )
@@ -45,7 +45,7 @@ def test_go_adapter_discovers_and_generates_heuristic_tests(tmp_path: Path) -> N
     )
     artifact = adapter.generate_heuristic(
         target=target,
-        prompt_text='<autotestgen-metadata>{"prompt_version":"feedback-v2","strategy":"baseline"}</autotestgen-metadata>',
+        prompt_text='<evotest-metadata>{"prompt_version":"feedback-v2","strategy":"baseline"}</evotest-metadata>',
         output_dir=tmp_path,
         attempt_number=1,
     )
@@ -71,7 +71,7 @@ def test_go_validator_accepts_imported_target_reference(tmp_path: Path) -> None:
     adapter = GoLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="go",
             generator_mode="heuristic",
         )
@@ -109,7 +109,7 @@ def test_go_validator_rejects_wrong_package_reference(tmp_path: Path) -> None:
     adapter = GoLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="go",
             generator_mode="heuristic",
         )
@@ -152,7 +152,7 @@ def test_go_runner_reads_coverprofile(tmp_path: Path) -> None:
     runner = GoRunner(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="go",
         )
     )
@@ -166,7 +166,7 @@ def test_go_runner_reads_coverprofile(tmp_path: Path) -> None:
     inventory = GoLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="go",
         )
     ).discover(tmp_path)
@@ -186,7 +186,7 @@ def test_go_runner_reads_coverprofile(tmp_path: Path) -> None:
 
 
 def test_go_runner_prefers_standard_windows_install_path(monkeypatch) -> None:
-    monkeypatch.delenv("AUTOTESTGEN_GO_BIN", raising=False)
+    monkeypatch.delenv("EVOTEST_GO_BIN", raising=False)
     monkeypatch.setattr(shutil, "which", lambda _: None)
     monkeypatch.setattr(os, "name", "nt", raising=False)
     monkeypatch.setattr(
@@ -219,7 +219,7 @@ def test_go_classifier_marks_missing_toolchain_as_nonrecoverable() -> None:
             success=False,
             exit_code=127,
             stdout="",
-            stderr="Go executable not found. Set AUTOTESTGEN_GO_BIN or install Go in a standard location.",
+            stderr="Go executable not found. Set EVOTEST_GO_BIN or install Go in a standard location.",
             duration_seconds=0.0,
             coverage=None,
             test_file_path=Path("generated.go"),
@@ -236,7 +236,7 @@ def test_go_classifier_marks_missing_toolchain_as_nonrecoverable() -> None:
 
 def test_go_runner_treats_completed_timeout_as_success() -> None:
     assert GoRunner._timed_out_but_completed(
-        stdout="ok  \texample.com/demo/autotestgen_generated_tests\t0.355s\tcoverage: 100.0% of statements\n",
+        stdout="ok  \texample.com/demo/evotest_generated_tests\t0.355s\tcoverage: 100.0% of statements\n",
         stderr="",
         coverage=type("Coverage", (), {"coverage_percent": 100.0})(),
     )
@@ -320,7 +320,7 @@ def test_go_repair_engine_builds_language_specific_llm_prompt(tmp_path: Path) ->
     adapter = GoLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="go",
             generator_mode="llm",
         )
@@ -328,14 +328,14 @@ def test_go_repair_engine_builds_language_specific_llm_prompt(tmp_path: Path) ->
     target = adapter.find_target("pkg/math.go::Add", adapter.discover(tmp_path))
     assert target is not None
     llm = _GoRepairSpyLLM(
-        "package autotestgengeneratedtests\n\n"
+        "package evotestgeneratedtests\n\n"
         "import (\n\t\"testing\"\n\ttargetpkg \"example.com/demo/pkg\"\n)\n\n"
         "func TestGenerated(t *testing.T) {\n\tif got := targetpkg.Add(1, 1); got != 2 {\n\t\tt.Fatalf(\"expected 2, got %v\", got)\n\t}\n}\n"
     )
 
     repaired = adapter.repair(
         target=target,
-        previous_test_source="package autotestgengeneratedtests\n\nfunc TestGenerated(t *testing.T) {}\n",
+        previous_test_source="package evotestgeneratedtests\n\nfunc TestGenerated(t *testing.T) {}\n",
         failure=FailureClassification(
             category="assertion_semantics",
             subtype="assertion_failure",
@@ -343,7 +343,7 @@ def test_go_repair_engine_builds_language_specific_llm_prompt(tmp_path: Path) ->
             message="expected 2, got 3",
             summary="wrong expectation",
         ),
-        prompt_text='<autotestgen-metadata>{"prompt_version":"feedback-v3","strategy":"baseline"}</autotestgen-metadata>',
+        prompt_text='<evotest-metadata>{"prompt_version":"feedback-v3","strategy":"baseline"}</evotest-metadata>',
         attempt_number=2,
         output_dir=tmp_path,
         parent_attempt_number=1,
@@ -371,7 +371,7 @@ def test_go_repair_engine_does_not_count_plain_regeneration_as_repair(tmp_path: 
     adapter = GoLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="go",
             generator_mode="heuristic",
         )
@@ -382,7 +382,7 @@ def test_go_repair_engine_does_not_count_plain_regeneration_as_repair(tmp_path: 
 
     repaired = repair.repair(
         target=target,
-        previous_test_source="package autotestgengeneratedtests\n\nfunc TestGenerated(t *testing.T) {}\n",
+        previous_test_source="package evotestgeneratedtests\n\nfunc TestGenerated(t *testing.T) {}\n",
         failure=FailureClassification(
             category="import_dependency",
             subtype="import_error",
@@ -390,7 +390,7 @@ def test_go_repair_engine_does_not_count_plain_regeneration_as_repair(tmp_path: 
             message="bad import",
             summary="bad import",
         ),
-        prompt_text='<autotestgen-metadata>{"prompt_version":"feedback-v3","strategy":"baseline"}</autotestgen-metadata>',
+        prompt_text='<evotest-metadata>{"prompt_version":"feedback-v3","strategy":"baseline"}</evotest-metadata>',
         attempt_number=2,
         output_dir=tmp_path,
         parent_attempt_number=1,

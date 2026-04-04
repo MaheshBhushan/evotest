@@ -1,9 +1,9 @@
 import ast
 from pathlib import Path
 
-from autotestgen.config import HarnessConfig
-from autotestgen.generator import ModelBackedTestGenerator, RepairEngine, StaticTestGenerator
-from autotestgen.models import FailureClassification, FunctionTarget
+from evotest.config import HarnessConfig
+from evotest.generator import ModelBackedTestGenerator, RepairEngine, StaticTestGenerator
+from evotest.models import FailureClassification, FunctionTarget
 
 
 def _target(tmp_path: Path) -> FunctionTarget:
@@ -141,8 +141,8 @@ def test_add_attempt_1_case_3():
     assert result == 999
 """
     prompt_text = (
-        '<autotestgen-metadata>{"prompt_version":"feedback-v2","strategy":"assertion_repair",'
-        '"previous_failures":["assertion_failure: wrong result"],"uncovered_lines":[1,2]}</autotestgen-metadata>'
+        '<evotest-metadata>{"prompt_version":"feedback-v2","strategy":"assertion_repair",'
+        '"previous_failures":["assertion_failure: wrong result"],"uncovered_lines":[1,2]}</evotest-metadata>'
     )
     failure = FailureClassification(
         category="assertion_semantics",
@@ -178,7 +178,7 @@ def test_repair_engine_uses_llm_prompt_with_failure_context(tmp_path: Path) -> N
     llm_generator = ModelBackedTestGenerator(
         config=HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             generator_mode="llm",
             openai_api_key="test-key",
         ),
@@ -194,8 +194,8 @@ def test_add_attempt_1_case_1():
     assert result == 999
 """
     prompt_text = (
-        '<autotestgen-metadata>{"prompt_version":"feedback-v2","strategy":"argument_repair",'
-        '"previous_failures":["type_error: wrong args"],"uncovered_lines":[1]}</autotestgen-metadata>'
+        '<evotest-metadata>{"prompt_version":"feedback-v2","strategy":"argument_repair",'
+        '"previous_failures":["type_error: wrong args"],"uncovered_lines":[1]}</evotest-metadata>'
     )
     failure = FailureClassification(
         category="runtime",

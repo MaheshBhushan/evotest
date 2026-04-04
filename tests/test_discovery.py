@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from autotestgen.analyzer import PythonProjectAnalyzer
+from evotest.analyzer import PythonProjectAnalyzer
 
 
 def test_discovery_finds_functions_and_skips_tests(tmp_path: Path) -> None:

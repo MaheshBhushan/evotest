@@ -1,12 +1,12 @@
 import shutil
 from pathlib import Path
 
-from autotestgen.adapters.javascript import JavaScriptLanguageAdapter
-from autotestgen.adapters.javascript.repair import JavaScriptRepairEngine
-from autotestgen.adapters.javascript.runner import JavaScriptRunner
-from autotestgen.benchmark import BenchmarkRunner
-from autotestgen.config import HarnessConfig
-from autotestgen.models import FailureClassification, GeneratedTestArtifact
+from evotest.adapters.javascript import JavaScriptLanguageAdapter
+from evotest.adapters.javascript.repair import JavaScriptRepairEngine
+from evotest.adapters.javascript.runner import JavaScriptRunner
+from evotest.benchmark import BenchmarkRunner
+from evotest.config import HarnessConfig
+from evotest.models import FailureClassification, GeneratedTestArtifact
 
 
 def test_javascript_adapter_discovers_and_generates_heuristic_tests(tmp_path: Path) -> None:
@@ -21,7 +21,7 @@ def test_javascript_adapter_discovers_and_generates_heuristic_tests(tmp_path: Pa
     )
     config = HarnessConfig(
         project_root=tmp_path,
-        database_path=tmp_path / ".autotestgen" / "state.db",
+        database_path=tmp_path / ".evotest" / "state.db",
         language="javascript",
         generator_mode="heuristic",
     )
@@ -41,7 +41,7 @@ def test_javascript_adapter_discovers_and_generates_heuristic_tests(tmp_path: Pa
     )
     artifact = adapter.generate_heuristic(
         target=target,
-        prompt_text=f'<autotestgen-metadata>{{"prompt_version":"feedback-v2","strategy":"baseline"}}</autotestgen-metadata>',
+        prompt_text=f'<evotest-metadata>{{"prompt_version":"feedback-v2","strategy":"baseline"}}</evotest-metadata>',
         output_dir=tmp_path,
         attempt_number=1,
     )
@@ -69,7 +69,7 @@ def test_javascript_validator_accepts_es_module_alias_imports(tmp_path: Path) ->
     adapter = JavaScriptLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="javascript",
             generator_mode="heuristic",
         )
@@ -97,7 +97,7 @@ def test_javascript_validator_rejects_bare_package_name_collision_import(tmp_pat
     adapter = JavaScriptLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="javascript",
             generator_mode="heuristic",
         )
@@ -130,7 +130,7 @@ def test_javascript_validator_rejects_namespace_import_from_bare_package_subpath
     adapter = JavaScriptLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="javascript",
             generator_mode="heuristic",
         )
@@ -163,7 +163,7 @@ def test_javascript_validator_rejects_invalid_syntax(tmp_path: Path) -> None:
     adapter = JavaScriptLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="javascript",
             generator_mode="heuristic",
         )
@@ -197,7 +197,7 @@ def test_javascript_validator_rejects_wrong_object_method_calls(tmp_path: Path) 
     adapter = JavaScriptLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="javascript",
             generator_mode="heuristic",
         )
@@ -229,7 +229,7 @@ def test_javascript_runner_copy_ignores_node_modules(tmp_path: Path) -> None:
     runner = JavaScriptRunner(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="javascript",
         )
     )
@@ -253,7 +253,7 @@ def test_javascript_adapter_discovers_default_exported_function(tmp_path: Path) 
     adapter = JavaScriptLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="javascript",
         )
     )
@@ -277,7 +277,7 @@ def test_javascript_adapter_discovers_commonjs_module_exports(tmp_path: Path) ->
     adapter = JavaScriptLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="javascript",
         )
     )
@@ -301,7 +301,7 @@ def test_javascript_adapter_discovers_commonjs_default_export_assignment(tmp_pat
     adapter = JavaScriptLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="javascript",
         )
     )
@@ -325,7 +325,7 @@ def test_javascript_generator_loads_commonjs_default_export_function(tmp_path: P
     adapter = JavaScriptLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="javascript",
             generator_mode="heuristic",
         )
@@ -337,14 +337,14 @@ def test_javascript_generator_loads_commonjs_default_export_function(tmp_path: P
 
     artifact = adapter.generate_heuristic(
         target=target,
-        prompt_text='<autotestgen-metadata>{"prompt_version":"feedback-v2","strategy":"baseline"}</autotestgen-metadata>',
+        prompt_text='<evotest-metadata>{"prompt_version":"feedback-v2","strategy":"baseline"}</evotest-metadata>',
         output_dir=tmp_path,
         attempt_number=1,
     )
 
-    assert "__autotestgenResolveExport" in artifact.test_source
+    assert "__evotestResolveExport" in artifact.test_source
     assert "loadedModule.default" in artifact.test_source
-    assert "add = __autotestgenResolveExport(loadedModule, 'add');" in artifact.test_source
+    assert "add = __evotestResolveExport(loadedModule, 'add');" in artifact.test_source
 
 
 def test_javascript_benchmark_runs_without_installed_framework(tmp_path: Path) -> None:
@@ -356,7 +356,7 @@ def test_javascript_benchmark_runs_without_installed_framework(tmp_path: Path) -
         HarnessConfig(
             project_root=repo_root,
             database_path=tmp_path / "state.db",
-            artifacts_root=tmp_path / ".autotestgen",
+            artifacts_root=tmp_path / ".evotest",
             language="javascript",
             generator_mode="heuristic",
             max_iterations=3,
@@ -414,7 +414,7 @@ def test_javascript_repair_engine_builds_language_specific_llm_prompt(tmp_path: 
     adapter = JavaScriptLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="javascript",
             generator_mode="llm",
         )
@@ -438,7 +438,7 @@ def test_javascript_repair_engine_builds_language_specific_llm_prompt(tmp_path: 
             message="expected 2, got 3",
             summary="wrong expectation",
         ),
-        prompt_text='<autotestgen-metadata>{"prompt_version":"feedback-v3","strategy":"baseline"}</autotestgen-metadata>',
+        prompt_text='<evotest-metadata>{"prompt_version":"feedback-v3","strategy":"baseline"}</evotest-metadata>',
         attempt_number=2,
         output_dir=tmp_path,
         parent_attempt_number=1,
@@ -461,7 +461,7 @@ def test_javascript_repair_engine_does_not_count_plain_regeneration_as_repair(tm
     adapter = JavaScriptLanguageAdapter(
         HarnessConfig(
             project_root=tmp_path,
-            database_path=tmp_path / ".autotestgen" / "state.db",
+            database_path=tmp_path / ".evotest" / "state.db",
             language="javascript",
             generator_mode="heuristic",
         )
@@ -479,7 +479,7 @@ def test_javascript_repair_engine_does_not_count_plain_regeneration_as_repair(tm
             message="cannot import module",
             summary="bad import",
         ),
-        prompt_text='<autotestgen-metadata>{"prompt_version":"feedback-v3","strategy":"baseline"}</autotestgen-metadata>',
+        prompt_text='<evotest-metadata>{"prompt_version":"feedback-v3","strategy":"baseline"}</evotest-metadata>',
         attempt_number=2,
         output_dir=tmp_path,
         parent_attempt_number=1,
