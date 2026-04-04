@@ -34,6 +34,32 @@ Notes:
 python -m pip install -e .
 ```
 
+## OpenAI Setup
+
+`OPENAI_API_KEY` is only required for model-backed generation.
+
+- `--generator-mode llm`: requires `OPENAI_API_KEY`
+- `--generator-mode auto`: uses OpenAI when `OPENAI_API_KEY` is set, otherwise falls back to heuristics
+- `--generator-mode heuristic`: never uses the API
+
+Set the key in PowerShell:
+
+```powershell
+$env:OPENAI_API_KEY = "your-api-key"
+```
+
+Set the key in bash:
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
+
+Example LLM-backed run:
+
+```bash
+evotest --project . --language python --generator-mode llm run --target src/samplelib/math_add.py::add
+```
+
 ## CLI
 
 The package exposes an `evotest` command.
