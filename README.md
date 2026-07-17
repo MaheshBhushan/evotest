@@ -1,5 +1,7 @@
 # evotest
 
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white) ![Go](https://img.shields.io/badge/Go-00ADD8?style=flat&logo=go&logoColor=white) ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=white)
+
 `evotest` is an experimental closed-loop test generation harness for local targets and repository workflows.
 
 It discovers candidate functions and modules, generates tests, executes them in isolated workspaces, measures coverage, classifies failures, stores attempts in SQLite, and retries with repair feedback. The current implementation includes Python, JavaScript, and Go adapters, with both heuristic and OpenAI-backed generation paths.
