@@ -107,7 +107,8 @@ class EnvironmentBootstrapper:
         self._run([sys.executable, "-m", "venv", str(venv_root)], cwd=project_root, commands=commands)
         python_executable = venv_root / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
         self._run(
-            [str(python_executable), "-m", "pip", "install", "pytest", "pytest-cov"],
+            [str(python_executable), "-m", "pip", "install", "pytest", "pytest-cov"]
+            + (["mutmut>=3.8,<4"] if self.config.mutation_testing else []),
             cwd=project_root,
             commands=commands,
         )

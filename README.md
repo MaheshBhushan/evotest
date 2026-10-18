@@ -88,6 +88,45 @@ You can also target a whole module:
 evotest --project . --language python run --target src/samplelib/math_add.py
 ```
 
+### Measure Generated Tests with Mutation Testing
+
+Install the optional mutmut dependency and enable mutation testing for Python targets:
+
+```bash
+python -m pip install -e '.[mutation]'
+evotest --project . --language python --mutation-testing --mutation-timeout 60 run --target src/samplelib/math_add.py::add
+```
+
+mutmut 3 requires Linux, macOS, or WSL. The runner uses the target project's
+Python interpreter. Install `mutmut>=3.8,<4` there when supplying a separate
+interpreter. Repository bootstrap installs mutmut automatically when enabled.
+
+Each passing generated suite runs against mutations in its target **file**,
+including functions with no generated test coverage. The evaluation uses only
+that generated suite. Stability reruns skip mutation testing. The mutation time
+budget covers evaluation and diff export for each suite; it defaults to 60 seconds.
+The runner mutates disposable copies of the project.
+
+The CLI reports mutation score beside coverage. SQLite execution records,
+benchmark JSON, and repository JSON retain the mutation status, counts, score,
+error, and evidence directory. Repository reviews show each target's score and
+evidence directory. Summaries average available target scores.
+
+The score is `100 * killed / (all mutants - skipped)`. Surviving, uncovered,
+timed-out, suspicious, and crashed mutants stay in the denominator. Only mutants
+reported as killed count as detected defects. Failed runs, incomplete runs, and
+zero-mutant runs have no score. Disabled mutation testing, failing generated
+suites, and non-Python targets also have no score. Reports use `null` or `N/A`
+for unavailable scores.
+
+Each evaluation preserves `.evotest/mutations/<evaluation-id>/` (or the configured
+artifact directory). It contains `result.json`, `mutmut.log`, the original target
+source, and `generated_test.py`. Completed exports include `counterexamples.json`
+with mutant IDs, outcomes, and unified diffs for killed and surviving mutants.
+Raw mutant source and metadata remain available after errors or timeouts when
+mutmut produced them. These artifacts let you inspect escaped defects and compare
+the generated assertions with the injected changes after workspace cleanup.
+
 ### Run a Repository Workflow
 
 For a remote repository:

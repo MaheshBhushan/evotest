@@ -167,6 +167,8 @@ class RepositoryWorkflowRunner:
             temperature=self.config.temperature,
             max_output_tokens=self.config.max_output_tokens,
             openai_api_key=self.config.openai_api_key,
+            mutation_testing=self.config.mutation_testing,
+            mutation_timeout_seconds=self.config.mutation_timeout_seconds,
         )
 
     @staticmethod
@@ -213,6 +215,7 @@ class RepositoryWorkflowRunner:
             retries_used=(len(result.attempts) - 1) if result.attempts else None,
             initial_coverage=initial_coverage,
             final_coverage=round(result.final_coverage, 2),
+            mutation=result.mutation,
             coverage_gain=round(max(result.final_coverage - initial_coverage, 0.0), 2),
             failure_category=final_failure.category if final_failure else None,
             failure_subtype=final_failure.subtype if final_failure else None,
@@ -241,6 +244,10 @@ class RepositoryWorkflowRunner:
         repair_successes = sum(target.repair_successes for target in target_reports)
         source_repair_attempts = sum(target.source_repair_attempts for target in target_reports)
         source_repair_successes = sum(1 for target in target_reports if target.source_repair_success)
+        mutation_scores = [
+            target.mutation.score for target in target_reports
+            if target.mutation and target.mutation.score is not None
+        ]
         return RepositorySummary(
             total_targets=total_targets,
             successful_targets=successful_targets,
@@ -252,6 +259,7 @@ class RepositoryWorkflowRunner:
             average_coverage_gain=round(mean([target.coverage_gain for target in target_reports]), 2)
             if target_reports
             else 0.0,
+            average_mutation_score=round(mean(mutation_scores), 2) if mutation_scores else None,
             total_attempts=total_attempts,
             fallback_attempts=fallback_attempts,
             invalid_output_attempts=invalid_output_attempts,
@@ -326,6 +334,9 @@ class RepositoryWorkflowRunner:
             f"- Bootstrap: `{report.detection.bootstrap_method}`",
             f"- Pass rate: `{report.summary.pass_rate:.2f}%`",
             f"- Average final coverage: `{report.summary.average_final_coverage:.2f}%`",
+            "- Average mutation score: `"
+            + (f"{report.summary.average_mutation_score:.2f}%" if report.summary.average_mutation_score is not None else "N/A")
+            + "`",
             f"- Average coverage gain: `{report.summary.average_coverage_gain:.2f}%`",
             f"- Source repair success rate: `{report.summary.source_repair_success_rate:.2f}%`",
             "",
@@ -338,6 +349,8 @@ class RepositoryWorkflowRunner:
                     f"### `{target.target_id}`",
                     f"- Success: `{target.success}`",
                     f"- Coverage: `{target.final_coverage:.2f}%`",
+                    f"- Mutation score: `{target.mutation.display() if target.mutation else 'N/A (not run)'}`",
+                    f"- Mutation evidence: `{target.mutation.evidence_dir if target.mutation else 'none'}`",
                     f"- Attempts: `{target.attempts}`",
                     f"- Failure: `{target.failure_subtype or 'none'}`",
                     f"- Source repair: `{target.source_repair_success}` after `{target.source_repair_attempts}` attempt(s)",

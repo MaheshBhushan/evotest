@@ -10,7 +10,7 @@ from statistics import mean
 from typing import Any
 
 from evotest.config import HarnessConfig
-from evotest.models import AttemptRecord, OrchestrationResult
+from evotest.models import AttemptRecord, MutationResult, OrchestrationResult
 from evotest.orchestrator import ClosedLoopOrchestrator
 
 
@@ -43,6 +43,7 @@ class BenchmarkTargetReport:
     providers_used: list[str]
     repair_success_by_subtype: dict[str, dict[str, float | int]]
     error: str | None = None
+    mutation: MutationResult | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -57,6 +58,7 @@ class BenchmarkTargetReport:
             "retries_to_success": self.retries_to_success,
             "initial_coverage": self.initial_coverage,
             "final_coverage": self.final_coverage,
+            "mutation": self.mutation.to_dict() if self.mutation else None,
             "coverage_gain": self.coverage_gain,
             "fallback_attempts": self.fallback_attempts,
             "invalid_output_attempts": self.invalid_output_attempts,
@@ -86,6 +88,7 @@ class BenchmarkSummary:
     repair_successes: int
     repair_success_rate: float
     repair_success_by_subtype: dict[str, dict[str, float | int]]
+    average_mutation_score: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -95,6 +98,7 @@ class BenchmarkSummary:
             "pass_rate": self.pass_rate,
             "total_attempts": self.total_attempts,
             "average_final_coverage": self.average_final_coverage,
+            "average_mutation_score": self.average_mutation_score,
             "average_coverage_gain": self.average_coverage_gain,
             "average_retries_to_success": self.average_retries_to_success,
             "fallback_attempts": self.fallback_attempts,
@@ -226,6 +230,7 @@ class BenchmarkRunner:
             retries_to_success=(len(result.attempts) - 1) if result.final_success and result.attempts else None,
             initial_coverage=initial_coverage,
             final_coverage=round(result.final_coverage, 2),
+            mutation=result.mutation,
             coverage_gain=round(max(result.final_coverage - initial_coverage, 0.0), 2),
             fallback_attempts=sum(1 for attempt in result.attempts if attempt.fallback_reason),
             invalid_output_attempts=sum(
@@ -247,6 +252,10 @@ class BenchmarkRunner:
         repair_attempts = sum(target.repair_attempts for target in targets)
         repair_successes = sum(target.repair_successes for target in targets)
         repair_by_subtype = self._merge_repair_stats(target.repair_success_by_subtype for target in targets)
+        mutation_scores = [
+            target.mutation.score for target in targets
+            if target.mutation and target.mutation.score is not None
+        ]
         return BenchmarkSummary(
             total_targets=total_targets,
             successful_targets=successful_targets,
@@ -254,6 +263,7 @@ class BenchmarkRunner:
             pass_rate=self._rate(successful_targets, total_targets),
             total_attempts=total_attempts,
             average_final_coverage=round(mean([target.final_coverage for target in targets]), 2) if targets else 0.0,
+            average_mutation_score=round(mean(mutation_scores), 2) if mutation_scores else None,
             average_coverage_gain=round(mean([target.coverage_gain for target in targets]), 2) if targets else 0.0,
             average_retries_to_success=round(mean(retries_to_success), 2) if retries_to_success else None,
             fallback_attempts=fallback_attempts,
@@ -291,6 +301,8 @@ class BenchmarkRunner:
             temperature=self.config.temperature,
             max_output_tokens=self.config.max_output_tokens,
             openai_api_key=self.config.openai_api_key,
+            mutation_testing=self.config.mutation_testing,
+            mutation_timeout_seconds=self.config.mutation_timeout_seconds,
         )
 
     def _session_artifacts_root(self, spec_path: Path) -> Path:

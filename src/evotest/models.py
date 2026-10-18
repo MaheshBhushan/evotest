@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -119,6 +120,24 @@ class CoverageResult:
 
 
 @dataclass(slots=True)
+class MutationResult:
+    status: str
+    score: float | None = None
+    counts: dict[str, int] = field(default_factory=dict)
+    evidence_dir: str | None = None
+    error: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    def display(self) -> str:
+        if self.score is not None:
+            return f"{self.score:.2f}%"
+        reason = "no mutants" if self.status == "completed" else self.error or self.status
+        return f"N/A ({reason})"
+
+
+@dataclass(slots=True)
 class ExecutionResult:
     target_id: str
     attempt_number: int
@@ -131,6 +150,7 @@ class ExecutionResult:
     test_file_path: Path
     language: str = "python"
     adapter_id: str = "python"
+    mutation: MutationResult | None = None
 
 
 @dataclass(slots=True)
@@ -172,3 +192,9 @@ class OrchestrationResult:
     stability_passed: bool
     language: str = "python"
     adapter_id: str = "python"
+
+    @property
+    def mutation(self) -> MutationResult | None:
+        if self.attempts and self.attempts[-1].execution_result:
+            return self.attempts[-1].execution_result.mutation
+        return None

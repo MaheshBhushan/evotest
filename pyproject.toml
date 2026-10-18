@@ -14,6 +14,9 @@ dependencies = [
   "pytest-cov>=5.0",
 ]
 
+[project.optional-dependencies]
+mutation = ["mutmut>=3.8,<4"]
+
 [project.scripts]
 evotest = "evotest.cli:main"
 

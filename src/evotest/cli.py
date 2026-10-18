@@ -23,6 +23,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-iterations", type=int, default=5, help="Max retry attempts per target.")
     parser.add_argument("--max-runtime", type=int, default=10, help="Per-attempt pytest timeout.")
     parser.add_argument("--coverage-target", type=float, default=80.0, help="Coverage target percent.")
+    parser.add_argument("--mutation-testing", action="store_true", help="Run mutmut after passing generated Python tests.")
+    parser.add_argument("--mutation-timeout", type=int, default=60, help="Mutation testing time budget per suite in seconds.")
     parser.add_argument("--stability-reruns", type=int, default=3, help="How many reruns to use for stability checks.")
     parser.add_argument(
         "--generator-mode",
@@ -102,6 +104,8 @@ def build_config(args: argparse.Namespace) -> HarnessConfig:
         temperature=args.temperature,
         max_output_tokens=args.max_output_tokens,
         openai_api_key=os.getenv("OPENAI_API_KEY"),
+        mutation_testing=args.mutation_testing,
+        mutation_timeout_seconds=args.mutation_timeout,
     )
 
 
@@ -159,6 +163,7 @@ def main() -> None:
             print(f"Targets: {report.summary.total_targets}")
             print(f"Pass Rate: {report.summary.pass_rate:.2f}%")
             print(f"Average Final Coverage: {report.summary.average_final_coverage:.2f}%")
+            print(f"Average Mutation Score: {format_score(report.summary.average_mutation_score)}")
             print(f"Report: {report.outputs.report_path}")
             print(f"Review: {report.outputs.review_path}")
             print(f"Patch: {report.outputs.patch_path}")
@@ -171,6 +176,9 @@ def main() -> None:
         print(f"Language: {result.language}")
         print(f"Success: {result.final_success}")
         print(f"Coverage: {result.final_coverage:.2f}%")
+        print(f"Mutation Score: {result.mutation.display() if result.mutation else 'N/A (not run)'}")
+        if result.mutation and result.mutation.evidence_dir:
+            print(f"Mutation Evidence: {result.mutation.evidence_dir}")
         print(f"Attempts: {len(result.attempts)}")
         print(f"Stable: {result.stability_passed}")
         if result.attempts:
@@ -192,11 +200,16 @@ def main() -> None:
         print(f"Benchmarks: {report.summary.total_targets}")
         print(f"Pass Rate: {report.summary.pass_rate:.2f}%")
         print(f"Average Final Coverage: {report.summary.average_final_coverage:.2f}%")
+        print(f"Average Mutation Score: {format_score(report.summary.average_mutation_score)}")
         print(f"Average Coverage Gain: {report.summary.average_coverage_gain:.2f}%")
         print(f"Fallback Rate: {report.summary.fallback_rate:.2f}%")
         print(f"Invalid Output Rate: {report.summary.invalid_output_rate:.2f}%")
         print(f"Repair Success Rate: {report.summary.repair_success_rate:.2f}%")
         print(f"Report: {report_path}")
+
+
+def format_score(score: float | None) -> str:
+    return f"{score:.2f}%" if score is not None else "N/A (no completed scores)"
 
 
 if __name__ == "__main__":

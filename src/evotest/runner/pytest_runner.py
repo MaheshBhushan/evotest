@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from evotest.config import HarnessConfig
 from evotest.models import CoverageResult, ExecutionResult, FunctionTarget, ModuleTarget
+from evotest.runner.mutmut_runner import MutmutRunner
 
 
 class PytestRunner:
@@ -69,6 +70,7 @@ class PytestRunner:
                 text=True,
                 env=env,
                 creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+                start_new_session=os.name != "nt",
             )
             try:
                 stdout, stderr = process.communicate(timeout=self.config.max_runtime_seconds)
@@ -78,6 +80,11 @@ class PytestRunner:
                     copied_project_root=project_copy,
                     target=target,
                 )
+                mutation = None
+                if process.returncode == 0 and self.config.mutation_testing and attempt_number < 1000:
+                    mutation = MutmutRunner(self.config, self.python_executable).run(
+                        project_copy, target, test_path_in_workspace, env,
+                    )
                 return ExecutionResult(
                     target_id=target.target_id,
                     attempt_number=attempt_number,
@@ -88,6 +95,7 @@ class PytestRunner:
                     duration_seconds=duration,
                     coverage=coverage,
                     test_file_path=test_file_path,
+                    mutation=mutation,
                 )
             except subprocess.TimeoutExpired:
                 self._terminate_process_tree(process)
@@ -126,6 +134,11 @@ class PytestRunner:
                 ".tmp",
                 "htmlcov",
                 ".coverage",
+                ".venv",
+                "venv",
+                "node_modules",
+                "mutants",
+                ".mutmut-cache",
             ),
         )
 

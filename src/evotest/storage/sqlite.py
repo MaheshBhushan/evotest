@@ -110,6 +110,7 @@ class SQLiteStore:
             self._ensure_column(connection, "attempts", "adapter_id", "TEXT")
             self._ensure_column(connection, "results", "language", "TEXT")
             self._ensure_column(connection, "results", "adapter_id", "TEXT")
+            self._ensure_column(connection, "results", "mutation_payload_json", "TEXT")
             self._ensure_column(connection, "attempts", "generation_mode", "TEXT")
             self._ensure_column(connection, "attempts", "parent_attempt_number", "INTEGER")
             self._ensure_column(connection, "attempts", "targeted_uncovered_lines_json", "TEXT")
@@ -272,8 +273,8 @@ class SQLiteStore:
                 """
                 INSERT INTO results (
                     target_id, attempt_number, language, adapter_id, success, exit_code, stdout, stderr,
-                    duration_seconds, coverage_percent, coverage_payload_json, test_file_path
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    duration_seconds, coverage_percent, coverage_payload_json, test_file_path, mutation_payload_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(target_id, attempt_number) DO UPDATE SET
                     language = excluded.language,
                     adapter_id = excluded.adapter_id,
@@ -284,6 +285,7 @@ class SQLiteStore:
                     duration_seconds = excluded.duration_seconds,
                     coverage_percent = excluded.coverage_percent,
                     coverage_payload_json = excluded.coverage_payload_json,
+                    mutation_payload_json = excluded.mutation_payload_json,
                     test_file_path = excluded.test_file_path
                 """,
                 (
@@ -299,6 +301,7 @@ class SQLiteStore:
                     coverage_percent,
                     coverage_payload,
                     str(result.test_file_path),
+                    json.dumps(result.mutation.to_dict()) if result.mutation else None,
                 ),
             )
 

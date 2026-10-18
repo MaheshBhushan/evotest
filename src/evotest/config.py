@@ -22,6 +22,8 @@ class HarnessConfig:
     temperature: float = 0.2
     max_output_tokens: int = 4000
     openai_api_key: str | None = None
+    mutation_testing: bool = False
+    mutation_timeout_seconds: int = 60
 
     @property
     def artifacts_dir(self) -> Path:
@@ -56,4 +58,6 @@ class HarnessConfig:
             temperature=self.temperature,
             max_output_tokens=self.max_output_tokens,
             openai_api_key=self.openai_api_key,
+            mutation_testing=self.mutation_testing,
+            mutation_timeout_seconds=self.mutation_timeout_seconds,
         )

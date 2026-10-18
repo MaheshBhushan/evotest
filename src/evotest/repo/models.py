@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from evotest.models import MutationResult
+
 
 @dataclass(slots=True)
 class RepositorySource:
@@ -72,6 +74,7 @@ class RepositoryTargetReport:
     providers_used: list[str]
     generated_files: list[str]
     error: str | None = None
+    mutation: MutationResult | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -82,6 +85,7 @@ class RepositoryTargetReport:
             "retries_used": self.retries_used,
             "initial_coverage": self.initial_coverage,
             "final_coverage": self.final_coverage,
+            "mutation": self.mutation.to_dict() if self.mutation else None,
             "coverage_gain": self.coverage_gain,
             "failure_category": self.failure_category,
             "failure_subtype": self.failure_subtype,
@@ -116,6 +120,7 @@ class RepositorySummary:
     source_repair_attempts: int
     source_repair_successes: int
     source_repair_success_rate: float
+    average_mutation_score: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -124,6 +129,7 @@ class RepositorySummary:
             "failed_targets": self.failed_targets,
             "pass_rate": self.pass_rate,
             "average_final_coverage": self.average_final_coverage,
+            "average_mutation_score": self.average_mutation_score,
             "average_coverage_gain": self.average_coverage_gain,
             "total_attempts": self.total_attempts,
             "fallback_attempts": self.fallback_attempts,
