@@ -161,6 +161,68 @@ The repository also ships language-specific benchmark specs:
 - `benchmarks/javascript_targets.json`
 - `benchmarks/go_targets.json`
 
+## MCP Evaluation
+
+Install the optional MCP SDK and start a local stdio server:
+
+```bash
+python -m pip install -e '.[mcp]'
+evotest --project /absolute/path/to/project --language python --generator-mode heuristic mcp
+```
+
+Configure an MCP client with command `evotest` and arguments
+`["--project", "/absolute/path/to/project", "--language", "python", "--generator-mode", "heuristic", "mcp"]`.
+The server uses the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk/tree/v1.x).
+It exposes two tools:
+
+- `evaluate_target(target, feedback_format="compact")` runs the existing generation,
+  execution, repair and stability loop. Target references use the existing
+  `path.py::function` or module syntax. Feedback formats are `compact` and `raw`.
+- `compare_feedback(spec)` evaluates both formats on the same fixed tasks from an
+  existing benchmark JSON spec. Specs contain 1–20 tasks. Spec paths and task
+  project roots must stay inside the server's configured project. Target files
+  must stay inside their task project.
+
+Each run uses a fresh SQLite database and generated-test directory. Reports are
+saved under `.evotest/evaluations/` with unique names. Comparisons return per-task
+results and totals for each format. Run settings come from the server's CLI flags.
+Compact feedback includes the latest failure category, subtype, recoverability,
+up to 240 summary characters, coverage and up to 50 missing lines. Raw feedback
+includes the latest full failure message and stdout/stderr. Both formats feed
+the actual repair prompts and retain the same source, strategy and coverage goals.
+Ordinary CLI runs retain their existing feedback behavior.
+
+Reports include:
+
+- Per-attempt coverage and signed changes from the preceding measured attempt.
+  Run coverage changes compare the loop's final coverage with the first attempt.
+  The loop reports its best coverage when it exhausts retries. Missing measurements
+  produce `null`; coverage changes can be negative.
+- Repair attempt and success counts using the benchmark's existing definition:
+  a linked repair succeeds when execution passes and the parent failure subtype
+  disappears. Repair success rates are fractions from 0 to 1, or `null` without repairs.
+- Provider-reported input, output and total tokens across generation and repair,
+  including responses that fail output validation. Heuristic runs consume zero
+  model tokens. Missing usage or failed provider requests produce `null`, without
+  token estimates. Counts use the Responses API's
+  [usage fields](https://developers.openai.com/api/reference/resources/responses/methods/create).
+- Wall-clock latency in seconds for discovery, generation, execution, repair,
+  persistence and stability reruns. Latency excludes report serialization and MCP
+  transport time. Providers used and fallback attempt counts identify fallback runs.
+
+For a model-backed comparison, restart the server with `--generator-mode llm`,
+configure `OPENAI_API_KEY` in the server environment, and call
+`compare_feedback` with a fixed spec such as `benchmarks/default_targets.json`
+when the server project is this repository. Explicit LLM evaluations require the
+key. The existing generator can fall back to heuristics after provider or output
+errors; inspect fallback counts before interpreting a comparison. Repeat experiments
+to assess variability in model output, cache effects and execution timing. The
+repository does not claim a measured advantage for either representation.
+
+The server executes project and generated test code with the local user's
+permissions. Use it with trusted local projects. It does not expose a network
+listener or install target dependencies.
+
 ## Runtime Artifacts
 
 Generated state and workspace outputs are written under gitignored paths such as:

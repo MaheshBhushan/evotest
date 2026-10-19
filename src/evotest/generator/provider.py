@@ -33,6 +33,7 @@ class OpenAIResponsesProvider:
             raise ProviderConfigurationError("OPENAI_API_KEY is not set.")
         self._api_key = api_key
         self._client = None
+        self.usage_records: list[dict[str, int] | None] = []
 
     def generate_text(
         self,
@@ -51,6 +52,7 @@ class OpenAIResponsesProvider:
             "max_output_tokens": max_output_tokens,
             "reasoning": {"effort": "low"},
         }
+        self.usage_records.append(None)
         try:
             response = client.responses.create(
                 temperature=temperature,
@@ -64,6 +66,12 @@ class OpenAIResponsesProvider:
                     raise ProviderResponseError(f"OpenAI request failed: {retry_exc}") from retry_exc
             else:
                 raise ProviderResponseError(f"OpenAI request failed: {exc}") from exc
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            input_tokens = getattr(usage, "input_tokens", None)
+            output_tokens = getattr(usage, "output_tokens", None)
+            if isinstance(input_tokens, int) and isinstance(output_tokens, int):
+                self.usage_records[-1] = {"input_tokens": input_tokens, "output_tokens": output_tokens}
         output_text = getattr(response, "output_text", "") or ""
         if not output_text.strip():
             raise ProviderResponseError("OpenAI returned empty output.")

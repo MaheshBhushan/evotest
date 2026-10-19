@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 from evotest.adapters import get_adapter, get_adapter_for_language, resolve_languages
 from evotest.adapters.base import LanguageAdapter
 from evotest.config import HarnessConfig
+from evotest.feedback.representation import apply_feedback
 from evotest.generator import ModelBackedTestGenerator, PromptBuilder
 from evotest.models import (
     AttemptRecord,
@@ -82,6 +85,7 @@ class ClosedLoopOrchestrator:
                 previous_attempt=previous_attempt,
                 successful_examples=successful_examples,
             )
+            apply_feedback(context, previous_attempt, self.config.feedback_format)
             prompt_text = self.prompt_builder.build(context)
             artifact = self._build_artifact(
                 target=target,
@@ -198,10 +202,13 @@ class ClosedLoopOrchestrator:
         adapter: LanguageAdapter,
     ) -> GeneratedTestArtifact:
         if previous_attempt and previous_attempt.failure and self._should_attempt_repair(previous_attempt.failure):
+            failure = previous_attempt.failure
+            if self.config.feedback_format == "compact":
+                failure = replace(failure, message=failure.summary[:240], summary=failure.summary[:240])
             repaired_source = adapter.repair(
                 target=target,
                 previous_test_source=previous_attempt.generated_test_source,
-                failure=previous_attempt.failure,
+                failure=failure,
                 prompt_text=prompt_text,
                 attempt_number=attempt_number,
                 output_dir=self.config.test_output_dir,

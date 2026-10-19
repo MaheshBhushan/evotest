@@ -24,6 +24,7 @@ class HarnessConfig:
     openai_api_key: str | None = None
     mutation_testing: bool = False
     mutation_timeout_seconds: int = 60
+    feedback_format: str = "default"
 
     @property
     def artifacts_dir(self) -> Path:
@@ -60,4 +61,5 @@ class HarnessConfig:
             openai_api_key=self.openai_api_key,
             mutation_testing=self.mutation_testing,
             mutation_timeout_seconds=self.mutation_timeout_seconds,
+            feedback_format=self.feedback_format,
         )

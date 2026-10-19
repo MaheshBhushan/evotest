@@ -42,6 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers.add_parser("mcp", help="Serve local evaluation tools over MCP stdio (requires evotest[mcp]).")
     subparsers.add_parser("discover", help="Discover test targets for the selected language.")
 
     run_parser = subparsers.add_parser("run", help="Run the closed-loop harness for one target.")
@@ -113,6 +114,12 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
     config = build_config(args)
+
+    if args.command == "mcp":
+        from evotest.mcp_server import create_server
+
+        create_server(config).run(transport="stdio")
+        return
 
     if args.command == "discover":
         orchestrator = ClosedLoopOrchestrator(config)
