@@ -161,6 +161,29 @@ The repository also ships language-specific benchmark specs:
 - `benchmarks/javascript_targets.json`
 - `benchmarks/go_targets.json`
 
+### Compare Coding Tools
+
+`compare-coding-tools` runs two command-line configurations on identical task fixtures. Each configuration receives the task prompt on stdin in a fresh workspace copy. After each tool run, evotest executes the fixed acceptance command and can feed failure output into a repair attempt. Tool stdout/stderr and reference-test results stay separate. Set `coverage_file` to a coverage JSON file emitted by the acceptance command to record `totals.percent_covered`; unavailable coverage remains `null`.
+
+```json
+{
+  "max_repairs": 1,
+  "tasks": [{
+    "name": "add",
+    "project_root": "fixtures/add",
+    "prompt": "Implement add(a, b) in src/add.py.",
+    "acceptance_command": ["python", "-m", "pytest", "-q", "tests/test_acceptance.py"],
+    "coverage_file": "coverage.json"
+  }],
+  "configurations": [
+    {"name": "tool-a", "command": ["tool-a", "run", "-"]},
+    {"name": "tool-b", "command": ["tool-b", "--prompt-stdin"]}
+  ]
+}
+```
+
+Run `evotest compare-coding-tools --spec comparison.json --report comparison-report.json`. Commands execute without a shell inside the task workspace. `{workspace}` in a command argument expands to its absolute path. Reports never estimate coverage.
+
 ## MCP Evaluation
 
 Install the optional MCP SDK and start a local stdio server:

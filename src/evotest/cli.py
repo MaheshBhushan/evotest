@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
 
 from evotest.benchmark import BenchmarkRunner
+from evotest.coding_comparison import CodingComparisonRunner
 from evotest.config import HarnessConfig
 from evotest.orchestrator import ClosedLoopOrchestrator
 from evotest.repo import RepositoryWorkflowRunner
@@ -81,6 +83,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="benchmarks/default_targets.json",
         help="JSON benchmark spec file. Relative paths resolve from --project.",
     )
+
+    compare_parser = subparsers.add_parser(
+        "compare-coding-tools", help="Compare two coding-tool configurations on fixed tasks."
+    )
+    compare_parser.add_argument("--spec", required=True, help="JSON comparison spec.")
+    compare_parser.add_argument("--report", help="Optional JSON report destination.")
     benchmark_parser.add_argument(
         "--report",
         default=".evotest/benchmark_report.json",
@@ -213,6 +221,13 @@ def main() -> None:
         print(f"Invalid Output Rate: {report.summary.invalid_output_rate:.2f}%")
         print(f"Repair Success Rate: {report.summary.repair_success_rate:.2f}%")
         print(f"Report: {report_path}")
+        return
+
+    if args.command == "compare-coding-tools":
+        spec_path = Path(args.spec).resolve()
+        report_path = Path(args.report).resolve() if args.report else None
+        report = CodingComparisonRunner().run(spec_path, report_path=report_path)
+        print(json.dumps(report, indent=2))
 
 
 def format_score(score: float | None) -> str:
